@@ -10,7 +10,7 @@ import time
 #1.WEB CORE & ENVIRONMENT SETTINGS
 st.set_page_config(page_title="NutriVision", layout="centered")
 
-st.sidebar.title("⚙️ Detection Settings")
+st.sidebar.title("Detection Settings")
 conf_thresh = st.sidebar.slider("Confidence Threshold", min_value=0.05, max_value=0.95, value=0.25, step=0.05)
 st.sidebar.info("Lower this slider if the model is ignoring fruits in your picture!")
 
@@ -88,7 +88,7 @@ MOCK_DATABASE = {
 @st.cache_resource
 def load_yolo_model():
     if not os.path.exists(MODEL_PATH):
-        st.error(f"❌ Could not locate model file at runtime structure: {MODEL_PATH}")
+        st.error(f"Could not locate model file at runtime structure: {MODEL_PATH}")
         return None
     return YOLO(MODEL_PATH)
 model = load_yolo_model()
@@ -160,7 +160,7 @@ if model is not None:
             st.image(annotated_img_rgb, channels="RGB", use_container_width=True)
             
         with col2:
-            st.subheader("📋 USDA Nutrition Facts")
+            st.subheader("USDA Nutrition Facts")
             if detected_classes:
                 st.success(f"Spotted: {', '.join(detected_classes)}")   
                 for fruit in detected_classes:

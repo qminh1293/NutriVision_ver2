@@ -120,7 +120,7 @@ def fetch_nutrition(fruit_name):
 
 #3.STREAMLIT APPLICATION VIEW INTERFACE
 st.title("Food Classification & Insight System")
-st.write("Upload an image of a fruit to instantly run YOLOv8 object detection and fetch verified USDA nutrition facts.")
+st.write("A web that detects fruit using YOLOv8 models and using USDA official database for nutrition information.")
 
 if model is not None:
     input_source = st.radio("Choose image source:", ("Upload File", "Use Camera"))

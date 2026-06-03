@@ -126,7 +126,7 @@ if model is not None:
     input_source = st.radio("Choose image source:", ("Upload File", "Use Camera"))
     
     if input_source == "Upload File":
-        uploaded_file = st.file_uploader("Choose a target fruit image...", type=["jpg", "jpeg", "png"])
+        uploaded_file = st.file_uploader("Choose a target fruit image (Apple, Banana, Grape, Pineapple, Watermelon, Orange)", type=["jpg", "jpeg", "png"])
     else:
         uploaded_file = st.camera_input("Take a picture of the fruit")
         

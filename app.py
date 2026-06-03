@@ -6,16 +6,12 @@ from ultralytics import YOLO
 from PIL import Image
 import numpy as np
 
-# =====================================================================
-# 1. WEB CORE & ENVIRONMENT SETTINGS
-# =====================================================================
+#1.WEB CORE & ENVIRONMENT SETTINGS
 st.set_page_config(page_title="NutriVision", layout="centered")
 
-# Environment paths
-MODEL_PATH = "D:/CV_Final_Project/runs/detect/train-2/weights/best.pt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "runs", "detect", "train-2", "weights", "best.pt")
 BASE_URL = "https://api.nal.usda.gov/fdc/v1"
-
-# SECRETS HANDSHAKE: Pulls your credential token seamlessly from your local .streamlit/secrets.toml
 API_KEY = st.secrets["USDA_API_KEY"]
 
 # Precise database query lookup strings matching official Foundation/Survey records
@@ -31,15 +27,14 @@ FRUIT_QUERY_MODIFIER = {
 @st.cache_resource
 def load_yolo_model():
     """Loads the model once and caches it to keep inferencing fast."""
+    # --- CHANGED: Added defensive file existence validation check ---
+    if not os.path.exists(MODEL_PATH):
+        st.error(f"❌ Could not locate model file at runtime structure: {MODEL_PATH}")
+        return None
     return YOLO(MODEL_PATH)
-
-# Initialize the computer vision layers
 model = load_yolo_model()
 
-
-# =====================================================================
-# 2. USDA NETWORKING HANDSHAKE ENDPOINT
-# =====================================================================
+#2.USDA NETWORKING HANDSHAKE ENDPOINT
 def fetch_nutrition(fruit_name):
     """Communicates securely with the US Government database from the backend."""
     search_term = FRUIT_QUERY_MODIFIER.get(fruit_name, f"{fruit_name} raw")
@@ -62,80 +57,65 @@ def fetch_nutrition(fruit_name):
         st.error(f"Failed to query database ecosystem: {str(e)}")
     return None
 
-
-# =====================================================================
-# 3. STREAMLIT APPLICATION VIEW INTERFACE
-# =====================================================================
+#3.STREAMLIT APPLICATION VIEW INTERFACE
 st.title("Food Classification & Insight System")
 st.write("Upload an image of a fruit to instantly run YOLOv8 object detection and fetch verified USDA nutrition facts.")
 
-# Browser local image uploading component widget
-uploaded_file = st.file_uploader("Choose a target fruit image...", type=["jpg", "jpeg", "png"])
-
-if uploaded_file is not None:
-    # 1. Load the uploaded file buffer into a PIL Image container
-    raw_image = Image.open(uploaded_file)
-    
-    # 2. Force the format to standard 3-channel RGB to drop Alpha/transparency channels
-    rgb_image = raw_image.convert("RGB")
-    img_array_rgb = np.array(rgb_image)
-    
-    # 🔥 THE FIX: Swap Streamlit's RGB matrix into OpenCV's BGR matrix before YOLO sees it!
-    # This guarantees the model sees real colors, allowing it to detect the stock orange easily.
-    img_array_bgr = cv2.cvtColor(img_array_rgb, cv2.COLOR_RGB2BGR)
-    
-    st.info("Running object detection inference...")
-    
-    # Pass the corrected BGR array directly to YOLO
-    results = model.predict(source=img_array_bgr, conf=0.25, imgsz=640, verbose=False)
-    result_object = results[0]
-    
-    # Extract unique classes directly from bounding box layers
-    detected_classes = []
-    if len(result_object.boxes) > 0:
-        for box in result_object.boxes:
-            class_id = int(box.cls[0])
-            class_name = model.names[class_id]
-            if class_name not in detected_classes:
-                detected_classes.append(class_name)
-                
-    # YOLO's plotting function natively returns a BGR image array
-    annotated_img_bgr = result_object.plot()
-    
-    # 🔥 THE SECOND FIX: Swap the plotted BGR image back to RGB for Streamlit to render correctly.
-    annotated_img_rgb = cv2.cvtColor(annotated_img_bgr, cv2.COLOR_BGR2RGB)
-    
-    # Generate structural layout split columns for clean presentation display mapping
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Result")
-        # We explicitly pass our corrected RGB image to the web browser
-        st.image(annotated_img_rgb, channels="RGB", use_container_width=True)
+if model is not None:
+    uploaded_file = st.file_uploader("Choose a target fruit image...", type=["jpg", "jpeg", "png"])
+    if uploaded_file is not None:
+        #Load the uploaded file buffer into a PIL Image container
+        raw_image = Image.open(uploaded_file)
         
-    with col2:
-        st.subheader("📋 USDA Nutrition Facts")
+        #Force the format to standard 3-channel RGB to drop Alpha/transparency channels
+        rgb_image = raw_image.convert("RGB")
+        img_array_rgb = np.array(rgb_image)
+        img_array_bgr = cv2.cvtColor(img_array_rgb, cv2.COLOR_RGB2BGR)
         
-        if detected_classes:
-            st.success(f"Spotted: {', '.join(detected_classes)}")
-            
-            # Loop through unique objects localized without redundancy
-            for fruit in detected_classes:
-                food_profile = fetch_nutrition(fruit)
-                
-                if food_profile:
-                    st.markdown(f"**🔬 {food_profile.get('description')} (Per 100g)**")
+        st.info("Running object detection inference...")
+        
+        # Pass the corrected BGR array directly to YOLO
+        results = model.predict(source=img_array_bgr, conf=0.25, imgsz=640, verbose=False)
+        result_object = results[0]
+        
+        # Extract unique classes directly from bounding box layers
+        detected_classes = []
+        if len(result_object.boxes) > 0:
+            for box in result_object.boxes:
+                class_id = int(box.cls[0])
+                class_name = model.names[class_id]
+                if class_name not in detected_classes:
+                    detected_classes.append(class_name)
                     
-                    # Parse individual rows inside the macro data payload arrays
-                    for nutrient in food_profile.get("foodNutrients", []):
-                        name = nutrient.get("nutrientName")
-                        value = nutrient.get("value")
-                        unit = nutrient.get("unitName").lower()
+        # YOLO's plotting function natively returns a BGR image array
+        annotated_img_bgr = result_object.plot()
+        
+        #Swap the plotted BGR image back to RGB for Streamlit to render correctly.
+        annotated_img_rgb = cv2.cvtColor(annotated_img_bgr, cv2.COLOR_BGR2RGB)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Result")
+            st.image(annotated_img_rgb, channels="RGB", use_container_width=True)
+           
+        with col2:
+            st.subheader("📋 USDA Nutrition Facts")
+            
+            if detected_classes:
+                st.success(f"Spotted: {', '.join(detected_classes)}")   
+                for fruit in detected_classes:
+                    food_profile = fetch_nutrition(fruit)        
+                    if food_profile:
+                        st.markdown(f"**🔬 {food_profile.get('description')} (Per 100g)**")
                         
-                        # Match structural macro keywords for tracking display rules
-                        if any(m in name.lower() for m in ["energy", "protein", "carbohydrate", "total lipid"]):
-                            st.write(f"• **{name}**: {value} {unit}")
+                        for nutrient in food_profile.get("foodNutrients", []):
+                            name = nutrient.get("nutrientName")
+                            value = nutrient.get("value")
+                            unit = nutrient.get("unitName").lower()
                             
-                    st.markdown("---")
-        else:
-            st.warning("No tracked fruit items could be localized in this view plane.")
+                            if any(m in name.lower() for m in ["energy", "protein", "carbohydrate", "total lipid"]):
+                                st.write(f"• **{name}**: {value} {unit}")   
+                        st.markdown("---")
+            else:
+                st.warning("No tracked fruit items could be localized in this view plane.")

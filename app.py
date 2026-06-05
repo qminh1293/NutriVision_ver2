@@ -19,6 +19,7 @@ st.sidebar.info("Lower this slider if the model is ignoring fruits in your pictu
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+# CHANGED: Replaced absolute path references with repository relative path structures for GitHub deployment
 if model_version == "YOLOv5 (Local Model)":
     MODEL_PATH = os.path.join(BASE_DIR, "runs_v5", "best.pt")
 else:

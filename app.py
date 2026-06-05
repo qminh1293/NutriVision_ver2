@@ -12,14 +12,14 @@ st.set_page_config(page_title="NutriVision", layout="centered")
 
 st.sidebar.title("Detection Settings")
 
-model_version = st.sidebar.selectbox("Select YOLO Version", ("YOLOv8 (Baseline)", "YOLOv5 (Local Model)"))
+model_version = st.sidebar.selectbox("Select YOLO Version", ("YOLOv8", "YOLOv5"))
 
 conf_thresh = st.sidebar.slider("Confidence Threshold", min_value=0.05, max_value=0.95, value=0.25, step=0.05)
 st.sidebar.info("Lower this slider if the model is ignoring fruits in your picture!")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-if model_version == "YOLOv5 (Local Model)":
+if model_version == "YOLOv5":
     MODEL_PATH = os.path.join(BASE_DIR, "runs_v5", "best.pt")
 else:
     MODEL_PATH = os.path.join(BASE_DIR, "runs", "detect", "train-2", "weights", "best.pt")
